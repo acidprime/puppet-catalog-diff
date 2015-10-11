@@ -111,5 +111,36 @@ module Puppet::CatalogDiff
         collector << resource
       end
     end
+
+    def convert_integer_to_str(node)
+      if node.kind_of? Integer
+        return node.to_s
+      elsif node.kind_of? Array
+        new = []
+        node.each do |i|
+          new << convert_integer_to_str(i)
+        end
+        return new
+      elsif node.kind_of? Hash
+        new = {}
+        node.each_pair do |k,v|
+          new[k] = convert_integer_to_str(v)
+        end
+        return new
+      end
+      return node
+    end
+
+    def normalize_to_current_parser(catalog)
+      catalog.each do |resource|
+        resource[:parameters].each_pair do |param, value|
+          if value.kind_of?(Array) and value.size == 1
+            value = value.first
+          end
+
+          resource[:parameters][param] = convert_integer_to_str(value)
+        end
+      end
+    end
   end
 end

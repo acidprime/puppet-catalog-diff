@@ -37,6 +37,10 @@ Puppet::Face.define(:catalog, '0.0.1') do
       summary 'Do not print classes in resource diffs'
     end
 
+    option "--downgrade_catalog" do
+      summary 'Normalize parser to old style 3.x "current" parser type'
+    end
+
     option "--filter_local" do
       summary "Use local YAML node files to filter out queried nodes"
     end

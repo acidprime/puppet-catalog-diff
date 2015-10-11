@@ -48,8 +48,8 @@ module Puppet::CatalogDiff
           end
         when '.json'
           tmp = PSON.load(File.read(r))
-	else
-	  raise "Provide catalog with the approprtiate file extension, valid extensions are pson, yaml and marshal"
+        else
+          raise "Provide catalog with the approprtiate file extension, valid extensions are pson, yaml and marshal"
         end
 
         m[:version] = tmp.version
@@ -59,6 +59,11 @@ module Puppet::CatalogDiff
         else
           convert25(tmp, v)
         end
+      end
+
+      if options[:downgrade_catalog]
+        from = normalize_to_current_parser(from)
+        to = normalize_to_current_parser(to)
       end
 
       if options[:exclude_classes]
