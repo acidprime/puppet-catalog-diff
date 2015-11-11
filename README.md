@@ -80,7 +80,7 @@ export YAMLDIR='/var/lib/puppet/yaml'
 export SSLDIR='/var/lib/puppet/ssl'
 export PUSER='puppet'
 [ $USER == $PUSER ] || exit 1
-time puppet catalog diff puppet2.example.com puppet3.example.com \
+time puppet catalog diff puppet2.example.com puppet3.example.com:8150 \
 --show_resource_diff \
 --content_diff \
 --yamldir $YAMLDIR \
