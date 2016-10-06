@@ -175,6 +175,15 @@ Puppet::Face.define(:catalog, '0.0.1') do
       nodes[:most_differences]   = most_differences.reverse.take((options.has_key?(:changed_depth) && options[:changed_depth].to_i || 10))
       nodes[:total_nodes]        = total_nodes
       nodes[:date]               = Time.new.iso8601
+
+      # Save the file as it can take a while to create
+      if options[:output_report]
+        Puppet.notice("Writing report to disk: #{options[:output_report]}")
+        File.open(options[:output_report],"w") do |f|
+          f.write(nodes.to_json)
+        end
+      end
+
       nodes
     end
 
