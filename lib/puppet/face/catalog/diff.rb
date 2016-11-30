@@ -162,11 +162,11 @@ Puppet::Face.define(:catalog, '0.0.1') do
 
       with_changes = nodes.select { |node,summary| summary.is_a?(Hash) && !summary[:node_percentage].zero? }
       most_changed = with_changes.sort_by {|node,summary| summary[:node_percentage]}.map do |node,summary|
-         Hash[node => summary[:node_percentage]]
+        Hash[node => summary[:node_percentage]]
       end
 
       most_differences = with_changes.sort_by {|node,summary| summary[:node_differences]}.map do |node,summary|
-         Hash[node => summary[:node_differences]]
+        Hash[node => summary[:node_differences]]
       end
       total_nodes        = nodes.size
       nodes[:total_percentage]   = (nodes.collect{|node,summary| summary.is_a?(Hash) && summary[:node_percentage] || nil }.compact.inject{|sum,x| sum.to_f + x } / total_nodes)
@@ -183,34 +183,43 @@ Puppet::Face.define(:catalog, '0.0.1') do
 
       format = Puppet::CatalogDiff::Formater.new()
       nodes.collect do |node,summary|
-      next if node == :total_percentage or node == :total_nodes or node == :most_changed or node == :with_changes or node == :most_differences or node == :pull_output or node == :date
-      format.node_summary_header(node,summary,:node_percentage) + summary.collect do |header,value|
-        next if value.nil?
-        if value.is_a?(Hash)
-          value.collect do |resource_id,resource|
-            next if resource.nil?
-            if resource.is_a?(Hash) && resource.has_key?(:type)
-              # If we find an actual resource print it out
-              format.resource_reference(header,resource_id,resource)
-            elsif resource.is_a?(Array)
-              next unless resource.any?
-              # Format string diffs
-              format.string_diff(header,resource_id,resource)
-            else
+        next if [:params_in_new, :params_in_old, :total_percentage, :total_nodes, :most_changed, :with_changes, :most_differences, :pull_output, :date].include? node
+        report = format.node_summary_header(node,summary,:node_percentage)
+
+        report << summary.collect do |header,value|
+          next if value.nil?
+          if value.is_a?(Hash)
+            value.collect do |resource_id,resource|
               next if resource.nil?
-              # Format hash diffs
-              format.params_diff(header,resource_id,resource)
+              if resource.is_a?(Hash) && resource.has_key?(:type)
+                # If we find an actual resource print it out
+                format.resource_reference(header,resource_id,resource)
+              elsif resource.is_a?(Array)
+                next unless resource.any?
+                # Format string diffs
+                format.string_diff(header,resource_id,resource)
+              else
+                next if resource.nil?
+                # Format hash diffs
+                format.params_diff(header,resource_id,resource)
+              end
             end
+          elsif value.is_a?(Array)
+            next if value.empty?
+            # Format arrays
+            format.list(header,value)
+          else
+            format.key_pair(header,value)
           end
-        elsif value.is_a?(Array)
-          next if value.empty?
-          # Format arrays
-          format.list(header,value)
-        else
-          format.key_pair(header,value)
-        end
         end.delete_if {|x| x.nil? or x == []  }.join("\n")
-      end.join("\n") + "#{format.node_summary_header("#{nodes[:with_changes]} out of #{nodes[:total_nodes]} nodes changed.",nodes,:total_percentage)}\n#{format.list_hash("Nodes with the most changes by percent changed",nodes[:most_changed])}\n\n#{format.list_hash("Nodes with the most changes by differeces",nodes[:most_differences],'')}#{(nodes.has_key?(:pull_output) && format.render_pull(nodes[:pull_output]))}"
+
+        report << "\033Parameter differences across catalogs:\033[0m:\n"
+        report << format.param_diff(node[:params_in_new.keys, node[:params_in_old], node[:params_in_new])
+      end.join("\n")
+
+      report << "#{format.node_summary_header("#{nodes[:with_changes]} out of #{nodes[:total_nodes]} nodes changed.",nodes,:total_percentage)}\n"
+      report << "#{format.list_hash("Nodes with the most changes by percent changed",nodes[:most_changed])}\n\n"
+      report << "#{format.list_hash("Nodes with the most changes by differeces",nodes[:most_differences],'')}#{(nodes.has_key?(:pull_output) && format.render_pull(nodes[:pull_output]))}"
     end
   end
 end
