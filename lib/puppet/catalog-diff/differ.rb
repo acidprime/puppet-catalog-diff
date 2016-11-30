@@ -39,23 +39,9 @@ module Puppet::CatalogDiff
         when '.marshal'
           tmp = Marshal.load(File.read(r))
         when '.pson'
-          tmp = PSON.load(File.read(r))
-          unless tmp.respond_to? :version
-            if Puppet::Resource::Catalog.respond_to? :from_data_hash
-              tmp = Puppet::Resource::Catalog.from_data_hash tmp
-            else
-              # The method was renamed in 3.5.0
-              tmp = Puppet::Resource::Catalog.from_pson tmp
-            end
-          end
-        when '.json'
-          if Puppet::Resource::Catalog.respond_to? :from_data_hash
-            tmp = Puppet::Resource::Catalog.from_data_hash JSON.load(File.read(r))
-          else
-            # The method was renamed in 3.5.0
-            tmp = Puppet::Resource::Catalog.from_pson JSON.load(File.read(r))
-          end
-        else
+          raw_content = File.read(r)
+          tmp = Puppet::Resource::Catalog.convert_from(:pson, raw_content)
+       else
           raise "Provide catalog with the appropriate file extension, valid extensions are pson, yaml and marshal"
         end
 
@@ -88,8 +74,8 @@ module Puppet::CatalogDiff
 
 
       resource_diffs_titles = return_resource_diffs(titles[:to], titles[:from])
-      output[:only_in_old] = resource_diffs_titles[:titles_only_in_old]
-      output[:only_in_new] = resource_diffs_titles[:titles_only_in_new]
+      output[:only_in_old] = resource_diffs_titles[:titles_only_in_old].sort
+      output[:only_in_new] = resource_diffs_titles[:titles_only_in_new].sort
 
       resource_diffs = compare_resources(from,to,options)
       output[:differences_in_old]  = resource_diffs[:old]
