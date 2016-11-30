@@ -141,5 +141,24 @@ module Puppet::CatalogDiff
         end
       end.join("\n") + "#{self.node_summary_header("#{output[:failed_nodes_total]} out of #{output[:total_nodes]} nodes failed to compile. failure rate:",output,:total_percentage)}"
     end
+
+    def param_diff(resource_list, old, new)
+      results = resource_list.collect do |resource|
+        output = String.new
+        old_resource = old[resource]
+        new_resource = new[resource]
+
+        params = Set.new
+        params.merge old_resource.keys
+        params.merge new_resource.keys
+
+        output << "\t\033[1m#{header.to_s.gsub("_"," ").capitalize}\033[0m:\n"
+        params.each do |param|
+          output << "\t\tOld Value: #{old_resource[param]}\n"
+          output << "\t\tNew Value: #{new_resource[param]}\n"
+          output << "\n"
+        end
+      end.join("\n")
+    end
   end
 end
