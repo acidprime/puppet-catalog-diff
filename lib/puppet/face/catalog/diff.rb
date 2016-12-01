@@ -182,12 +182,14 @@ Puppet::Face.define(:catalog, '0.0.1') do
       require File.expand_path(File.join(File.dirname(__FILE__), "..", "..", "catalog-diff", "formater.rb"))
 
       format = Puppet::CatalogDiff::Formater.new()
+      report = String.new
+
       nodes.collect do |node,summary|
-        next if [:params_in_new, :params_in_old, :total_percentage, :total_nodes, :most_changed, :with_changes, :most_differences, :pull_output, :date].include? node
-        report = format.node_summary_header(node,summary,:node_percentage)
+        next if [:total_percentage, :total_nodes, :most_changed, :with_changes, :most_differences, :pull_output, :date].include? node
+        report << format.node_summary_header(node,summary,:node_percentage)
 
         report << summary.collect do |header,value|
-          next if value.nil?
+          next if ([:params_in_new, :params_in_old].include? header) or value.nil?
           if value.is_a?(Hash)
             value.collect do |resource_id,resource|
               next if resource.nil?
@@ -214,7 +216,7 @@ Puppet::Face.define(:catalog, '0.0.1') do
         end.delete_if {|x| x.nil? or x == []  }.join("\n")
 
         report << "\033Parameter differences across catalogs:\033[0m:\n"
-        report << format.param_diff(node[:params_in_new.keys, node[:params_in_old], node[:params_in_new])
+        report << format.param_diff(summary[:params_in_new].keys, summary[:params_in_old], summary[:params_in_new])
       end.join("\n")
 
       report << "#{format.node_summary_header("#{nodes[:with_changes]} out of #{nodes[:total_nodes]} nodes changed.",nodes,:total_percentage)}\n"
