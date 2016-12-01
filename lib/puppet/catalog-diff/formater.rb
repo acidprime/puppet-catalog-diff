@@ -152,13 +152,15 @@ module Puppet::CatalogDiff
         params.merge old_resource.keys
         params.merge new_resource.keys
 
-        output << "\t\033[1m#{header.to_s.gsub("_"," ").capitalize}\033[0m:\n"
+        output << "\t\033[1m#{resource}\033[0m:\n"
         params.each do |param|
-          output << "\t\tOld Value: #{old_resource[param]}\n"
-          output << "\t\tNew Value: #{new_resource[param]}\n"
+          output << "\t\tOld Value: #{old_resource[param] || "UNDEF"}\n"
+          output << "\t\tNew Value: #{new_resource[param] || "UNDEF"}\n"
           output << "\n"
         end
-      end.join("\n")
+
+        output
+      end.join
     end
   end
 end
