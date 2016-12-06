@@ -29,8 +29,8 @@ Puppet::Face.define(:catalog, '0.0.1') do
       summary "Whether to show a diff for File resource content"
     end
 
-    option '--show_resource_diff' do
-      summary 'Display differeces between resources in unified diff format'
+    option '--no_resource_diff' do
+      summary 'Do not display differeces between resources in unified diff format'
     end
 
     option '--exclude_classes' do
