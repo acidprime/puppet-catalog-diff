@@ -39,8 +39,34 @@ module Puppet::CatalogDiff
         when '.marshal'
           tmp = Marshal.load(File.read(r))
         when '.pson'
-          raw_content = File.read(r)
-          tmp = Puppet::Resource::Catalog.convert_from(:pson, raw_content)
+          if Puppet::Util::Package.versioncmp(Puppet.version, '4.0.0') < 0
+            # If we're still in Puppet 3.X, use the 3.X loading method
+            tmp = PSON.load(File.read(r))
+            unless tmp.respond_to? :version
+              if Puppet::Resource::Catalog.respond_to? :from_data_hash
+                tmp = Puppet::Resource::Catalog.from_data_hash tmp
+              else
+                # The method was renamed in 3.5.0
+                tmp = Puppet::Resource::Catalog.from_pson tmp
+              end
+            end
+          else
+
+            # Puppet 4 Method of loading the pson is quite different than 3.X
+            raw_content = File.read(r)
+            tmp = Puppet::Resource::Catalog.convert_from(:pson, raw_content)
+          end
+        when '.json'
+          if Puppet::Util::Package.versioncmp(Puppet.version, '4.0.0') <= 0
+            raise "Loading JSON files will not work when using puppet-diff on Puppet 4.X"
+          end
+
+          if Puppet::Resource::Catalog.respond_to? :from_data_hash
+            tmp = Puppet::Resource::Catalog.from_data_hash JSON.load(File.read(r))
+          else
+            # The method was renamed in 3.5.0
+            tmp = Puppet::Resource::Catalog.from_pson JSON.load(File.read(r))
+          end
        else
           raise "Provide catalog with the appropriate file extension, valid extensions are pson, yaml and marshal"
         end
