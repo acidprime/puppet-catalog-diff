@@ -2,7 +2,7 @@ require 'erb'
 require 'json'
 desc "Build final report"
 task :build do
-  @nodes = load_json("lastrun.json")
+  @nodes = load_json("/root/lastrun-1560.json")
   build_file("Report.md")
 end
 
@@ -12,7 +12,7 @@ def load_json(filename)
 end
 
 def build_file(filename)
-  template_path = "./templates/report.erb"
+  template_path = "./templates/reports.erb"
   target_dir = "."
   target_path = "#{target_dir}/#{filename}"
   FileUtils.mkdir(target_dir) unless File.directory?(target_dir)
@@ -30,4 +30,3 @@ end
 def cputs(string)
   puts "\033[1m#{string}\033[0m"
 end
-

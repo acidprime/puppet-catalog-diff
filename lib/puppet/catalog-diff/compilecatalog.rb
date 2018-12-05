@@ -20,30 +20,42 @@ module Puppet::CatalogDiff
       end
     end
 
-    def lookup_environment(node_name)
+    def lookup_environment(node_name,server)
       # Compile the catalog with the last environment used according to the yaml terminus
       # The following is a hack as I can't pass :mode => master in the 2.7 series
-      unless node = Puppet::Face[:node, '0.0.1'].find(node_name,:terminus => 'yaml' )
-        raise "Error retrieving node object from yaml terminus #{node_name}"
+      #unless node = Puppet::Face[:node, '0.0.1'].find(node_name,:mode => 'master')
+      #  raise "Error retrieving node object from yaml terminus #{node_name}"
+      #end
+      #Puppet.debug("Found environment #{node.environment} for node #{node_name}")
+      #if node.parameters['clientcert'] != node_name
+      #  raise "The node retrieved from yaml terminus is a mismatch node returned was (#{node.parameters['clientcert']})"
+      #end
+      #node.environment
+
+      query = "%5Benvironment%5D%7Bcertname%20%3D%20%27#{node_name}%27%7D"
+      endpoint = "/pdb/query/v4?query=inventory#{query}"
+      begin
+        connection = Puppet::Network::HttpPool.http_instance(server,'8081')
+        environment_object = connection.request_get(endpoint, {"Accept" => 'application/json'}).body
+        filtered = PSON.load(environment_object)
+        Puppet.debug("Query: #{query} returns environment_object #{environment_object}")
+      rescue Exception => e
+        raise "Error getting environment data from API: #{e.message}"
       end
-      Puppet.debug("Found environment #{node.environment} for node #{node_name}")
-      if node.parameters['clientcert'] != node_name
-        raise "The node retrieved from yaml terminus is a mismatch node returned was (#{node.parameters['clientcert']})"
-      end
-      node.environment
+      Puppet.debug("filtered #{filtered[0]['environment']}")
+      environment = filtered[0]['environment']
+      environment
     end
 
     def compile_catalog(node_name,server)
       server,environment = server.split('/')
-      environment ||= lookup_environment(node_name)
+      environment ||= lookup_environment(node_name,server)
       endpoint = "/#{environment}/catalog/#{node_name}"
-      server,port = server.split(':')
-      port ||= '8140'
       Puppet.debug("Connecting to server: #{server}")
       begin
-        connection = Puppet::Network::HttpPool.http_instance(server,port)
+        connection = Puppet::Network::HttpPool.http_instance(server,'8140')
         catalog = connection.request_get(endpoint, {"Accept" => 'pson'}).body
-      rescue Exception => e
+      rescue
         raise "Failed to retrieve catalog for #{node_name} from #{server} in environment #{environment}: #{e.message}"
       end
       catalog
