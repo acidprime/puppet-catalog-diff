@@ -70,20 +70,35 @@ module Puppet::CatalogDiff
 
     def find_nodes_puppetdb(env)
         require 'puppet/util/puppetdb'
-        begin
-          port = 8081
-          use_ssl = port != 8080
-          connection = Puppet::Network::HttpPool.http_instance('master-old',port,use_ssl)
-          base_query = ["and", ["=", ["node","active"], true]]
-          base_query.concat([["=", "catalog-environment", env]]) if env
-          query = base_query.concat(@facts.map { |k, v| ["=", ["fact", k], v] })
-          json_query = URI.escape(query.to_json)
-          facts_object = connection.request_get("/pdb/query/v4/nodes?query=#{json_query}", {"Accept" => 'application/json'})
-          filtered = PSON.load(facts_object)
-          names = filtered.map { |node| node['certname'] }
-          names
-        rescue Exception => e
-          raise "Test query: #{query}, facts_object: #{facts_object}, filtered: #{filtered}, error: #{e.message}"
+        server_url = Puppet::Util::Puppetdb.config.server_urls[0]
+        port = server_url.port
+        use_ssl = port != 8080
+        connection = Puppet::Network::HttpPool.http_instance(server_url.host,port,use_ssl)
+        base_query = ["and", ["=", ["node","active"], true]]
+        base_query.concat([["=", "catalog_environment", env]]) if env
+        real_facts = @facts.select { |k, v| !v.nil? }
+        query = base_query.concat(real_facts.map { |k, v| ["=", ["fact", k], v] })
+        classes = Hash[@facts.select { |k, v| v.nil? }].keys
+        classes.each do |c|
+          capit = c.split('::').map{ |n| n.capitalize }.join('::')
+          query = query.concat(
+            [["in", "certname",
+              ["extract", "certname",
+                ["select-resources",
+                  ["and",
+                    ["=", "type", "Class"],
+                    ["=", "title", capit ],
+                  ],
+                ],
+              ],
+            ]]
+          )
         end
+        json_query = URI.escape(query.to_json)
+        unless filtered = PSON.load(connection.request_get("/pdb/query/v4/nodes?query=#{json_query}", {"Accept" => 'application/json'}).body)
+          raise "Error parsing json output of puppet search"
+        end
+        names = filtered.map { |node| node['certname'] }
+        names
     end                                                                                                                            end
 end
