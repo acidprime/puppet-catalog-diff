@@ -38,6 +38,10 @@ Puppet::Face.define(:catalog, '0.0.1') do
       default_to { '10' }
     end
 
+    option "--all-environments" do
+      summary "List machines from all environments rather than just the source environment"
+    end
+
     description <<-'EOT'
       This action is used to seed a series of catalogs from two servers
     EOT
