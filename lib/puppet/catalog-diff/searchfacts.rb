@@ -15,7 +15,11 @@ module Puppet::CatalogDiff
      old_env = options[:old_server].split('/')[1]
      if options[:use_puppetdb]
        Puppet.debug("Using puppetDB to find active nodes")
-       active_nodes = find_nodes_puppetdb(old_env)
+       if options[:all_environments]
+         active_nodes = find_nodes_puppetdb(nil)
+       else
+         active_nodes = find_nodes_puppetdb(old_env)
+       end
      else
        Puppet.debug("Using Fact Reset Interface to find active nodes")
        active_nodes = find_nodes_rest(old_server)

@@ -61,6 +61,8 @@ directly rather than via the rest terminus. However the rest terminus should
 be the same list of nodes if they are both backed by puppetdb and so this
 option is only for environments where puppetdb is more authoritative in some
 way they the facts rest query. This option is provided for future compatibility.
+By default, `--use-puppetdb` only lists hosts present in the source environment
+at last report time. The `--all-environments` option will list all hosts.
 
 You can run this face without root access if you run the script as the puppet user
 on the system. The following is an example script doing so. You can alternatively
